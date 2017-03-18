@@ -1,0 +1,19 @@
+body {
+        text-align: center;
+        background-color: lightblue;
+      }
+      .form-control {
+        display: inline;
+      }
+      #name-input {
+        
+      }
+      .headerName {
+        background-color: red;
+      }
+      .littleBoxes {
+        background-color: red;
+      }
+      #talk-input {
+        
+      }
