@@ -2,106 +2,72 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>Rock Paper Scissors Part Fire</title>
+    <title>Rock Paper Scissors - Fire</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-    
-    <!--
-    <link rel="stylesheet" type="text/css" href="reset.css">
-    -->
-    
-    <style type="text/css">
-      body {
-        text-align: center;
-        background-color: lightblue;
-      }
-      .form-control {
-        display: inline;
-      }
-      #name-input {
-        
-      }
-      .headerName {
-        background-color: red;
-      }
-      .littleBoxes {
-        background-color: red;
-      }
-      #talk-input {
-        
-      }
-      
-    </style>
+
+     <!-- CSS reset sheet -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.css">
+    <!-- Our Own CSS File -->
+    <link rel="stylesheet" href="assets/css/main.css">
+
   </head>
+
   <body>
-    
-    <div class="container">
-      <div class="row">
-        <div class="col-sm-12 headerName">
-          <h1>Rock Paper Scisors</h1>
-        </div>
+
+    <header>
+      <h1>Rock Paper Scissors</h1>
+    </header>
+
+    <div id="sizer">
+      <div id="swap-zone">
+        <input id="username" placeholder="Name"/>
+        <button id="start">Start</button>
       </div>
 
-      <div class="row">
-        <div class="col-sm-3"></div>
-        <div class="col-sm-5 submitArea">
-          <input class="form-control" id="name-input" type="text">
-        </div>
-        <div class="col-sm-1" id="playerBtn">
-          <button>submit</button>
-        </div>
-        <div class="col-sm-3"></div>
-      </div>
+      <div id="current-turn"></div>
 
-      <div class="row">
-        <div class="col-sm-3 littleBoxes" id="player1El">
-          <h3 id="name1"></h3>
-          <div id="options1"></div>
-          <div id="wins1"></div>
-          <div id="losses1"></div>
+      <div id="game-div">
+        <div id="player1">
+          <h3 id="player1-name">Player1</h3>
+          <ul>
+          </ul>
+          <div id="player1-chosen"></div>
+          <div class="outcomes">
+            <div class="outcome-trackers" id="player1-wins"></div>
+            <div class="outcome-trackers" id="player1-losses"></div>
+          </div>
         </div>
-        <div class="col-sm-1"></div>
-        <div class="col-sm-4 littleBoxes">
-          <h3 id="resultEl">Pending Results</h3>
-        </div>
-        <div class="col-sm-1"></div>
-        <div class="col-sm-3 littleBoxes" id="player2El">
-          <h3 id="name2"></h3>
-          <div id="options2"></div>
-          <div id="wins2"></div>
-          <div id="losses2"></div>
+
+        <div id="result"></div>
+
+        <div id="player2">
+          <h3 id="player2-name">Player2</h3>
+          <ul>
+          </ul>
+          <div id="player2-chosen"></div>
+          <div class="outcomes">
+            <div class="outcome-trackers" id="player2-wins"></div>
+            <div class="outcome-trackers" id="player2-losses"></div>
+          </div>
         </div>
       </div>
-
-      <div class="row">
-        <div class="col-sm-2"></div>
-        <div class="col-sm-8">
-          <label for="comment-input">How did you hear about us?</label>
-          <textarea disabled class="form-control" id="comment-input" rows="5"></textarea>
+      
+      <div id="chat">
+        <div id="chat-messages"></div>
+        <div id="chat-bar">
+          <input id="chat-input" />
+          <button id="chat-send">Send</button>
         </div>
-        <div class="col-sm-2"></div>
       </div>
-
-      <div class="row">
-        <div class="col-sm-2"></div>
-        <div class="col-sm-6 submitArea">
-          <input class="form-control" id="talk-input" type="text">
-        </div>
-        <div class="col-sm-1" id="talkBtn">
-          <button>submit</button>
-        </div>
-        <div class="col-sm-2"></div>
-      </div>
-
     </div>
-    
-    <script src="https://www.gstatic.com/firebasejs/3.7.1/firebase.js"></script>
-    
+
+  <script src="https://www.gstatic.com/firebasejs/3.7.1/firebase.js"></script>  
   <script type="text/javascript" src="assets/javascript/main.js"></script>
 
-</body>
+  </body>
 
 </html>

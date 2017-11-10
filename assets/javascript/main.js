@@ -1,295 +1,303 @@
  //// Initialize Firebase ////
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyDQvjBBtYKvO-bBw09ORvk5xS0r18sfSCg",
-        authDomain: "rockpaperscissors-ff755.firebaseapp.com",
-        databaseURL: "https://rockpaperscissors-ff755.firebaseio.com",
-        storageBucket: "rockpaperscissors-ff755.appspot.com",
-        messagingSenderId: "495506074507"
+var config = {
+  apiKey: "AIzaSyDQvjBBtYKvO-bBw09ORvk5xS0r18sfSCg",
+  authDomain: "rockpaperscissors-ff755.firebaseapp.com",
+  databaseURL: "https://rockpaperscissors-ff755.firebaseio.com",
+  storageBucket: "rockpaperscissors-ff755.appspot.com",
+  messagingSenderId: "495506074507"
+};
+firebase.initializeApp(config);
+var database = firebase.database();
+///////////////////////////////
+
+//// game vars ////
+var database = firebase.database();
+var chatData = database.ref("/chat");
+var playersRef = database.ref("players");
+var currentTurnRef = database.ref("turn");
+var username = "Guest";
+var currentPlayers = null;
+var currentTurn = null;
+var playerNum = false;
+var playerOneExists = false;
+var playerTwoExists = false;
+var playerOneData = null;
+var playerTwoData = null;
+///////////////////////////////
+
+// USERNAME LISTENERS
+// Start button - takes username and tries to get user in game
+$("#start").click(function() {
+  if ($("#username").val() !== "") {
+    username = capitalize($("#username").val());
+    getInGame();
+  }
+});
+
+// listener for 'enter' in username input
+$("#username").keypress(function(e) {
+  if (e.keyCode === 13 && $("#username").val() !== "") {
+    username = capitalize($("#username").val());
+    getInGame();
+  }
+});
+
+// Function to capitalize usernames
+function capitalize(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// CHAT LISTENERS
+// Chat send button listener, grabs input and pushes to firebase. (Firebase's push automatically creates a unique key)
+$("#chat-send").click(function() {
+  if ($("#chat-input").val() !== "") {
+    var message = $("#chat-input").val();
+    chatData.push({
+      name: username,
+      message: message,
+      time: firebase.database.ServerValue.TIMESTAMP,
+      idNum: playerNum
+    });
+    $("#chat-input").val("");
+  }
+});
+
+// Chatbox input listener
+$("#chat-input").keypress(function(e) {
+  if (e.keyCode === 13 && $("#chat-input").val() !== "") {
+    var message = $("#chat-input").val();
+    chatData.push({
+      name: username,
+      message: message,
+      time: firebase.database.ServerValue.TIMESTAMP,
+      idNum: playerNum
+    });
+    $("#chat-input").val("");
+  }
+});
+
+// Click event for dynamically added <li> elements
+$(document).on("click", "li", function() {
+  console.log("click");
+  // Grabs text from li choice
+  var clickChoice = $(this).text();
+  console.log(playerRef);
+  // Sets the choice in the current player object in firebase
+  playerRef.child("choice").set(clickChoice);
+  // User has chosen, so removes choices and displays what they chose
+  $("#player" + playerNum + " ul").empty();
+  $("#player" + playerNum + "chosen").html(clickChoice);
+  // Increments turn. Turn goes from:
+  // 1 - player 1
+  // 2 - player 2
+  // 3 - determine winner
+  currentTurnRef.transaction(function(turn) {
+    return turn + 1;
+  });
+});
+
+// Update chat on screen when new message detected - ordered by 'time' value
+chatData.orderByChild("time").on("child_added", function(snapshot) {
+  // If idNum is 0, then its a disconnect message and displays accordingly
+  // If not - its a user chat message
+  if (snapshot.val().idNum === 0) {
+    $("#chat-messages").append("<p class=player" + snapshot.val().idNum + "><span>"
+    + snapshot.val().name + "</span>: " + snapshot.val().message + "</p>");
+  }
+  else {
+    $("#chat-messages").append("<p class=player" + snapshot.val().idNum + "><span>"
+    + snapshot.val().name + "</span>: " + snapshot.val().message + "</p>");
+  }
+
+  // Keeps div scrolled to bottom on each update.
+  $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+});
+
+// Tracks changes in key which contains player objects
+playersRef.on("value", function(snapshot) {
+  // length of the 'players' array
+  currentPlayers = snapshot.numChildren();
+  // Check to see if players exist
+  playerOneExists = snapshot.child("1").exists();
+  playerTwoExists = snapshot.child("2").exists();
+  // Player data objects
+  playerOneData = snapshot.child("1").val();
+  playerTwoData = snapshot.child("2").val();
+  // If theres a player 1, fill in name and win loss data
+  if (playerOneExists) {
+    $("#player1-name").text(playerOneData.name);
+    $("#player1-wins").text("Wins: " + playerOneData.wins);
+    $("#player1-losses").text("Losses: " + playerOneData.losses);
+  }
+  else {
+    // If there is no player 1, clear win/loss data and show waiting
+    $("#player1-name").text("Waiting for Player 1");
+    $("#player1-wins").empty();
+    $("#player1-losses").empty();
+  }
+  // If theres a player 2, fill in name and win/loss data
+  if (playerTwoExists) {
+    $("#player2-name").text(playerTwoData.name);
+    $("#player2-wins").text("Wins: " + playerTwoData.wins);
+    $("#player2-losses").text("Losses: " + playerTwoData.losses);
+  }
+  else {
+    // If no player 2, clear win/loss and show waiting
+    $("#player2-name").text("Waiting for Player 2");
+    $("#player2-wins").empty();
+    $("#player2-losses").empty();
+  }
+});
+
+// Detects changes in current turn key
+currentTurnRef.on("value", function(snapshot) {
+  // Gets current turn from snapshot
+  currentTurn = snapshot.val();
+  // Don't do the following unless you're logged in
+  if (playerNum) {
+    // For turn 1
+    if (currentTurn === 1) {
+      // If its the current player's turn, tell them and show choices
+      if (currentTurn === playerNum) {
+        $("#current-turn").html("<h2>It's Your Turn!</h2>");
+        $("#player" + playerNum + " ul").append("<li>Rock</li><li>Paper</li><li>Scissors</li>");
+      }
+      else {
+        // If it isnt the current players turn, tells them theyre waiting for player one
+        $("#current-turn").html("<h2>Waiting for " + playerOneData.name + " to choose.</h2>");
+      }
+      // Shows yellow border around active player
+      $("#player1").css("border", "2px solid yellow");
+      $("#player2").css("border", "1px solid black");
+    }
+    else if (currentTurn === 2) {
+      // If its the current player's turn, tell them and show choices
+      if (currentTurn === playerNum) {
+        $("#current-turn").html("<h2>It's Your Turn!</h2>");
+        $("#player" + playerNum + " ul").append("<li>Rock</li><li>Paper</li><li>Scissors</li>");
+      }
+      else {
+        // If it isnt the current players turn, tells them theyre waiting for player two
+        $("#current-turn").html("<h2>Waiting for " + playerTwoData.name + " to choose.</h2>");
+      }
+      // Shows yellow border around active player
+      $("#player2").css("border", "2px solid yellow");
+      $("#player1").css("border", "1px solid black");
+    }
+    else if (currentTurn === 3) {
+      // Where the game win logic takes place then resets to turn 1
+      gameLogic(playerOneData.choice, playerTwoData.choice);
+      // reveal both player choices
+      $("#player1-chosen").html(playerOneData.choice);
+      $("#player2-chosen").html(playerTwoData.choice);
+      //  reset after timeout
+      var moveOn = function() {
+        $("#player1-chosen").empty();
+        $("#player2-chosen").empty();
+        $("#result").empty();
+        // check to make sure players didn't leave before timeout
+        if (playerOneExists && playerTwoExists) {
+          currentTurnRef.set(1);
+        }
       };
-      firebase.initializeApp(config);
-      var database = firebase.database();
-      ///////////////////////////////
+      //  show results for 2 seconds, then resets
+      setTimeout(moveOn, 2000);
+    }
+    else {
+      $("#player1 ul").empty();
+      $("#player2 ul").empty();
+      $("#current-turn").html("<h2>Waiting for another player to join.</h2>");
+      $("#player2").css("border", "1px solid black");
+      $("#player1").css("border", "1px solid black");
+    }
+  }
+});
 
-      //// game vars ////
-      // var options = ["r", "p", "s"];
-      var userWin = 0;
-      var userLoss = 0;
-      var userTie = 0;
+// When a player joins, checks to see if there are two players now. If yes, then it will start the game.
+playersRef.on("child_added", function(snapshot) {
+  if (currentPlayers === 1) {
+  // set turn to 1, which starts the game
+  currentTurnRef.set(1);
+  }
+});
 
-      var players;
-      var player1Guess;
-      var player2Guess;
-      var player1;
-      var player2;
-      var nameSubmit = true;
-      var turn;
-      ///////////////////////////////
+// Function to get in the game
+function getInGame() {
+  // For adding disconnects to the chat with a unique id (the date/time the user entered the game)
+  // Needed because Firebase's '.push()' creates its unique keys client side,
+  // so you can't ".push()" in a ".onDisconnect"
+  var chatDataDisc = database.ref("/chat/" + Date.now()); //adding current date to chat
+  // Checks for current players, if theres a player one connected, then the user becomes player 2.
+  // If there is no player one, then the user becomes player 1
+  if (currentPlayers < 2) {
+    if (playerOneExists) {
+      playerNum = 2;
+    }
+    else {
+      playerNum = 1;
+    }
+    // Creates key based on assigned player number
+    playerRef = database.ref("/players/" + playerNum);
+    // Creates player object. 'choice' is unnecessary here, but I left it in to be as complete as possible
+    playerRef.set({
+      name: username,
+      wins: 0,
+      losses: 0,
+      choice: null
+    });
+    // On disconnect remove this user's player object
+    playerRef.onDisconnect().remove();
+    // If a user disconnects, set the current turn to 'null' so the game does not continue
+    currentTurnRef.onDisconnect().remove();
+    // Send disconnect message to chat with Firebase server generated timestamp and id of '0' to denote system message
+    chatDataDisc.onDisconnect().set({
+      name: username,
+      time: firebase.database.ServerValue.TIMESTAMP,
+      message: "has disconnected.",
+      idNum: 0
+    });
+    // Remove name input box and show current player number.
+    $("#swap-zone").html("<h2>Hi " + username + "! You are Player " + playerNum + "</h2>");
+  }
+  else {
+    // If current players is "2", will not allow the player to join
+    alert("Sorry, Game Full! Try Again Later!");
+  }
+}
 
-      //// firebase vars ////
-      var name = "";
-      var count = 0;
-      var currentPlayer;
-      var connectedPlayers;
-      var currentPlayer1;
-      var playerWins;
-      var con;
-      var uniqueKey;
-      var uniquePlayer;
-      var uniquePlayer1;
-      var uniquePlayer2;
-      ///////////////////////////////
-
-      var playerName;
-      //// game ////
-      function gamePlayFunc (s1, s2) {
-        console.log("game on!!!!!!");
-        if (s1 === "rock" && s2 === "scisors") {
-          console.log("User Wins!");
-          //return s1;
-          database.ref("players/player1/name").on("value", function(snapshot) {
-            playerName = snapshot.val(); 
-          }, function(errorObject) {console.log("Errors handled: " + errorObject.code);});
-          return playerName;
-          userWin++;
-        } else if (s1 === "paper" && s2 === "rock") {
-            console.log("User Wins!");
-            database.ref("players/player1/name").on("value", function(snapshot) {
-            playerName = snapshot.val(); 
-          }, function(errorObject) {console.log("Errors handled: " + errorObject.code);});
-          return playerName;
-            userWin++;
-        } else if (s1 === "scisors" && s2 === "paper") {
-            console.log("User Wins!");
-            database.ref("players/player1/name").on("value", function(snapshot) {
-            playerName = snapshot.val(); 
-          }, function(errorObject) {console.log("Errors handled: " + errorObject.code);});
-          return playerName;
-            userWin++;
-        } else if (s1 === s2) {
-            console.log("Tie");
-            return "no winner";
-            userTie++;
-        } else {
-            console.log("Robot wins");
-            database.ref("players/player2/name").on("value", function(snapshot) {
-            playerName = snapshot.val(); 
-          }, function(errorObject) {console.log("Errors handled: " + errorObject.code);});
-          return playerName;
-            userLoss++;
-        }
-      }
-      ///////////////////////////////
-
-      //// phase II html ////
-      function connectedPlayersFunc (playe, num) {
-      $("#name" + num).html(playe.name);
-      $("#options" + num).html();
-      $("#wins" + num).html("wins: " + playe.wins);
-      $("#losses" + num).html("Losses: " + playe.losses);
-      }
-
-      //// options list ////
-      function optionsFunc (num) {
-        var rock = $("<div class='optionsEl' selection='rock'>rock</div>");
-        var paper = $("<div class='optionsEl' selection='paper'>paper</div>");
-        var scisors = $("<div class='optionsEl' selection='scisors'>scisors</div>");
-
-        var option = $("#options" + num);
-        option.html("");
-        option.append(rock);
-        option.append(paper);
-        option.append(scisors);
-      }
-
-      //// selected option options ////
-      function optionSelectedFunc (select, num) {
-        var selected = $("<div class='selectionEl'>" + select + "</div>");
-        var option = $("#options" + num);
-        option.html("");
-        option.append(selected);
-      }
-      ///////////////////////////////
-
-      //// result window ////
-      function resultFunc (result) {
-        var resulted = $("<div>" + result + "</div>");
-        var option = $("#resultEl");
-        option.html("");
-        option.append(resulted);
-      }
-      ///////////////////////////////
-
-      ///////////////////////////////
-
-
-
-      //// connections ////
-      var connectionsRef = database.ref("/connections");
-      var connectedRef = database.ref(".info/connected");
-      connectedRef.on("value", function(snap) {
-        if (snap.val()) {
-          var con = connectionsRef.push(true);
-          con.onDisconnect().remove();
-        }
-      });
-      connectionsRef.on("value", function(snap) {
-        connectedPlayers = snap.numChildren();
-      });
-      ///////////////////////////////
-
-      //// phase I initial ////
-      $("#playerBtn").on("click", function() {
-        if (nameSubmit) {
-          nameInput = $("#name-input").val().trim();
-
-          if (connectedPlayers === 1) {
-            database.ref("/players/player1/").set({
-              name: nameInput,
-              wins: 0,
-              losses: 0
-            });
-            currentPlayer = "player1";
-            currentPlayer1 = 1;
-          } else if (connectedPlayers === 2) {
-            uniquePlayer2 = database.ref("/players/player2").set({
-              name: nameInput,
-              wins: 0,
-              losses: 0
-            });
-            currentPlayer = "player2";
-          }
-          database.ref("/players/" + currentPlayer + "/").onDisconnect().remove();
-
-          //connectedPlayersFunc(playerName, nameInput);
-        }
-        nameSubmit = false;
-      });
-      ///////////////////////////////
-
-      //// phase I get database data only goes to current browser ////
-      database.ref("players").on("child_added", function(childSnapshot) {
-
-        // will appear in both browsers
-        database.ref("players/player1").on("value", function(snapshot) {
-          var number = 1;
-          var playerVals = snapshot.val();
-          connectedPlayersFunc(playerVals, number); 
-        }, function(errorObject) {
-          console.log("Errors handled: " + errorObject.code);
-        });
-
-        if (connectedPlayers === 2) {
-          turn = 1;
-          database.ref("/turns").set({turn: turn}); //replaces existing database data
-
-          if (currentPlayer1 === 1) {
-            optionsFunc(1);
-            
-          }
-
-          database.ref("players/player2").on("value", function(snapshot) {
-            var number = 2;
-              var playerVals = snapshot.val();
-              connectedPlayersFunc(playerVals, number); 
-            }, function(errorObject) {
-            console.log("Errors handled: " + errorObject.code);
-          });
-
-         }
-
-      }, function(errorObject) {
-        console.log("Errors handled: " + errorObject.code);
-      });
-      database.ref("/turns/").onDisconnect().remove()
-      ///////////////////////////////
-
-      //// optionSelection player1 ////
-      $("#options1").on("click", ".optionsEl", function() {
-        var clickedValue = $(this).attr("selection");
-        optionSelectedFunc(clickedValue, 1);
-
-        // save selection to server
-        database.ref().child('players').child('player1').child('selection').set(clickedValue);
-
-        turn = 2;
-        database.ref("/turns").set({turn: turn});
-      });
-      ///////////////////////////////
-
-      //// optionSelection player2 ////
-      $("#options2").on("click", ".optionsEl", function() {
-        var clickedValue = $(this).attr("selection");
-        optionSelectedFunc(clickedValue, 2);
-
-        // save selection to server
-        database.ref().child('players').child('player2').child('selection').set(clickedValue);
-      });
-      ///////////////////////////////
-
-      //// when turn is updated ////
-      database.ref("turns").on("child_changed", function(childSnapshot) {
-        //want to get values for turn 2 player 2
-        var turnFire = childSnapshot.val();
-        console.log("childSnapshot " + childSnapshot.val());
-        console.log("turnFire " + turnFire);
-
-        //alert("im working child changed");
-        if (turnFire === 2 && currentPlayer1 !== 1) {
-          optionsFunc(turnFire);
-        } else if (turnFire === 1 && currentPlayer1 ===1 ){
-          optionsFunc(turnFire);
-        }
-
-      });
-      ///////////////////////////////
-
-      //// when player2 option is updated ////
-      database.ref('players/player2/selection').on("value", function(snapshot) {
-        // check who won
-        if ( snapshot.val().selection !== null ) {
-  
-          var selection1
-          database.ref().child('players').child('player1').child('selection').on("value", function(snapshot) {
-            selection1 = snapshot.val();
-          });
-          console.log("selection1 " + selection1);
-          var selection2
-          database.ref().child('players').child('player2').child('selection').on("value", function(snapshot) {
-            selection2 = snapshot.val();
-          });
-          console.log("selection2 " + selection2);
-          var resultGame = gamePlayFunc(selection1, selection2);
-          console.log("yooooooooo " + gamePlayFunc(selection1, selection2))
-          // print selection on both screens along with winner
-          optionSelectedFunc(selection1, 1);
-          optionSelectedFunc(selection2, 2);
-          resultFunc(resultGame);
-
-          // pause for 10 seconds
-          // set turn
-          //turn = 1;
-          //database.ref("/turns").set({turn: turn});
-          turn = 1;
-          function populateFireFunc () {
-            database.ref("/turns").set({turn: turn});
-          }
-          setTimeout(populateFireFunc, 10000);
-        }
-           
-        }, function(errorObject) {
-        console.log("Errors handled: " + errorObject.code);
-      });
-      ///////////////////////////////
-
-      //// chat submission ////
-      $("#talkBtn").on("click", function() {
-        console.log("im working");
-
-        var talk = $("#talk-input").val().trim(); // value passed into text area
-        //document.getElementById("comment-input").value += talk;
-        var obj = document.getElementById("comment-input");
-        var txt = document.createTextNode(talk + "\n" );
-        obj.appendChild(txt);
-      });
-      ///////////////////////////////
+// Game logic - Tried to space this out and make it more readable. Displays who won, lost, or tie game in result div.
+// Increments wins or losses accordingly.
+function gameLogic(player1choice, player2choice) {
+  var playerOneWon = function() {
+    $("#result").html("<h2>" + playerOneData.name + "</h2><h2>Wins!</h2>");
+    if (playerNum === 1) {
+      playersRef.child("1").child("wins").set(playerOneData.wins + 1);
+      playersRef.child("2").child("losses").set(playerTwoData.losses + 1);
+    }
+  };
+  var playerTwoWon = function() {
+    $("#result").html("<h2>" + playerTwoData.name + "</h2><h2>Wins!</h2>");
+    if (playerNum === 2) {
+      playersRef.child("2").child("wins").set(playerTwoData.wins + 1);
+      playersRef.child("1").child("losses").set(playerOneData.losses + 1);
+    }
+  };
+  var tie = function() {
+    $("#result").html("<h2>Tie Game!</h2>");
+  };
+  if (player1choice === "Rock" && player2choice === "Scissors") {
+    playerOneWon();
+  }
+  else if (player1choice === "Paper" && player2choice === "Rock") {
+    playerOneWon();
+  }
+  else if (player1choice === "Scissors" && player2choice === "Paper") {
+    playerOneWon();
+  }
+  else if (player1choice === player2choice) {
+    tie();
+  }
+  else {
+    playerTwoWon();
+  }
+}
